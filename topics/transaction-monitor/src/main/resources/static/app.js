@@ -204,8 +204,8 @@ function displayAlerts(alerts) {
   
   tbody.innerHTML = alerts.map(alert => `
     <tr>
-      <td>${alert.id}</td>
-      <td>${alert.transactionId}</td>
+      <td>${alert.alertId}</td>
+      <td>${alert.transaction.id}</td>
       <td><span class="alert-type">${getAlertTypeText(alert.alertType)}</span></td>
       <td>
         <span class="severity-badge severity-${alert.severity.toLowerCase()}">
@@ -236,13 +236,45 @@ function setActiveAlertButton(index) {
 function getAlertTypeText(alertType) {
   const typeMap = {
     'HIGH_AMOUNT': '高額交易',
-    'FREQUENT_TRANSACTION': '頻繁交易',
+    'FREQUENT_TRANSACTIONS': '頻繁交易',
     'DUPLICATE_TRANSACTION': '重複交易',
     'SUSPICIOUS_MERCHANT': '可疑商店',
     'UNUSUAL_TIME': '異常時段',
     'CROSS_BORDER': '跨境交易'
   };
   return typeMap[alertType] || alertType;
+}
+
+// 手動觸發異常偵測
+async function triggerDetection() {
+  try {
+    const response = await fetch(`${ALERT_API_BASE}/detect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('偵測失敗');
+    }
+    
+    const result = await response.json();
+    
+    // 顯示偵測結果
+    alert(`異常偵測完成！\n\n` +
+          `總交易數: ${result.totalTransactions}\n` +
+          `偵測到警示: ${result.totalAlerts} 個\n\n` +
+          `- 高額交易: ${result.highAmountAlerts} 個\n` +
+          `- 頻繁交易: ${result.frequentAlerts} 個\n` +
+          `- 重複交易: ${result.duplicateAlerts} 個`);
+    
+    // 重新載入警示列表
+    loadAllAlerts();
+  } catch (error) {
+    console.error('觸發偵測失敗:', error);
+    alert('⚠️ 觸發偵測失敗，請稍後再試');
+  }
 }
 
 // 取得風險等級文字

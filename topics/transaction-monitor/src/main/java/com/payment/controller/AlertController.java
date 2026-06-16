@@ -1,7 +1,10 @@
 package com.payment.controller;
 
+import com.payment.model.Transaction;
 import com.payment.model.TransactionAlert;
 import com.payment.repository.AlertRepository;
+import com.payment.service.AlertDetectionService;
+import com.payment.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -29,6 +32,8 @@ import java.util.List;
 public class AlertController {
     
     private final AlertRepository alertRepository;
+    private final AlertDetectionService alertDetectionService;
+    private final TransactionService transactionService;
     
     @Operation(
         summary = "查詢所有警示",
@@ -119,6 +124,90 @@ public class AlertController {
             @Parameter(description = "嚴重程度", required = true, example = "HIGH")
             @PathVariable String severity) {
         return ResponseEntity.ok(alertRepository.findBySeverity(severity));
+    }
+    
+    @Operation(
+        summary = "查詢高風險警示",
+        description = "取得所有高風險等級的警示記錄"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得高風險警示列表",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        )
+    })
+    @GetMapping("/high-risk")
+    public ResponseEntity<List<TransactionAlert>> getHighRiskAlerts() {
+        return ResponseEntity.ok(alertRepository.findBySeverity("HIGH"));
+    }
+    
+    @Operation(
+        summary = "查詢未處理警示",
+        description = "取得所有警示記錄（目前系統尚未實作警示處理狀態）"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得警示列表",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        )
+    })
+    @GetMapping("/unresolved")
+    public ResponseEntity<List<TransactionAlert>> getUnresolvedAlerts() {
+        // 目前返回所有警示，因為尚未實作 resolved 欄位
+        return ResponseEntity.ok(alertRepository.findAll());
+    }
+    
+    @Operation(
+        summary = "手動觸發異常偵測",
+        description = "對所有現有交易執行異常偵測，產生警示記錄。適合在系統初始化或需要重新分析時使用。"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "偵測完成，回傳偵測到的警示數量"
+        )
+    })
+    @PostMapping("/detect")
+    public ResponseEntity<java.util.Map<String, Object>> detectAlerts() {
+        // 取得所有交易
+        java.util.List<Transaction> allTransactions = transactionService.getAllTransactions();
+        
+        int totalAlerts = 0;
+        int highAmountAlerts = 0;
+        int frequentAlerts = 0;
+        int duplicateAlerts = 0;
+        
+        // 對每筆交易執行偵測
+        for (Transaction transaction : allTransactions) {
+            java.util.List<TransactionAlert> alerts = alertDetectionService.detectAlerts(transaction);
+            totalAlerts += alerts.size();
+            
+            // 統計各類型警示數量
+            for (TransactionAlert alert : alerts) {
+                switch (alert.getAlertType()) {
+                    case "HIGH_AMOUNT":
+                        highAmountAlerts++;
+                        break;
+                    case "FREQUENT_TRANSACTIONS":
+                        frequentAlerts++;
+                        break;
+                    case "DUPLICATE_TRANSACTION":
+                        duplicateAlerts++;
+                        break;
+                }
+            }
+        }
+        
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "異常偵測完成",
+            "totalTransactions", allTransactions.size(),
+            "totalAlerts", totalAlerts,
+            "highAmountAlerts", highAmountAlerts,
+            "frequentAlerts", frequentAlerts,
+            "duplicateAlerts", duplicateAlerts
+        ));
     }
 }
 
