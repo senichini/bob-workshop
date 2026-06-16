@@ -1,9 +1,14 @@
 package com.payment.controller;
 
+import com.payment.dto.AlertSearchRequest;
+import com.payment.dto.AlertStatisticsResponse;
+import com.payment.dto.AlertStatusUpdateRequest;
+import com.payment.model.AlertStatus;
 import com.payment.model.Transaction;
 import com.payment.model.TransactionAlert;
 import com.payment.repository.AlertRepository;
 import com.payment.service.AlertDetectionService;
+import com.payment.service.AlertService;
 import com.payment.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,11 +17,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 交易警示控制器
@@ -24,7 +34,7 @@ import java.util.List;
  * @author IBM Bob Workshop
  * @version 1.0.0
  */
-@Tag(name = "警示管理", description = "交易警示查詢 API")
+@Tag(name = "警示管理", description = "交易警示查詢與管理 API")
 @RestController
 @RequestMapping("/api/alerts")
 @RequiredArgsConstructor
@@ -34,6 +44,7 @@ public class AlertController {
     private final AlertRepository alertRepository;
     private final AlertDetectionService alertDetectionService;
     private final TransactionService transactionService;
+    private final AlertService alertService;
     
     @Operation(
         summary = "查詢所有警示",
@@ -143,8 +154,24 @@ public class AlertController {
     }
     
     @Operation(
-        summary = "查詢未處理警示",
-        description = "取得所有警示記錄（目前系統尚未實作警示處理狀態）"
+        summary = "查詢待處理警示",
+        description = "取得所有狀態為 PENDING 的警示記錄"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得待處理警示列表",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        )
+    })
+    @GetMapping("/unresolved")
+    public ResponseEntity<List<TransactionAlert>> getUnresolvedAlerts() {
+        return ResponseEntity.ok(alertService.getPendingAlerts());
+    }
+    
+    @Operation(
+        summary = "根據狀態查詢警示",
+        description = "取得指定狀態的所有警示記錄"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -153,10 +180,94 @@ public class AlertController {
             content = @Content(schema = @Schema(implementation = TransactionAlert.class))
         )
     })
-    @GetMapping("/unresolved")
-    public ResponseEntity<List<TransactionAlert>> getUnresolvedAlerts() {
-        // 目前返回所有警示，因為尚未實作 resolved 欄位
-        return ResponseEntity.ok(alertRepository.findAll());
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<TransactionAlert>> getAlertsByStatus(
+            @Parameter(description = "警示狀態", required = true, example = "PENDING")
+            @PathVariable AlertStatus status) {
+        return ResponseEntity.ok(alertService.getAlertsByStatus(status));
+    }
+    
+    @Operation(
+        summary = "更新警示狀態",
+        description = "更新指定警示的狀態及處理資訊"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功更新警示狀態",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "請求參數錯誤"),
+        @ApiResponse(responseCode = "404", description = "找不到指定的警示")
+    })
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateAlertStatus(
+            @Parameter(description = "警示 ID", required = true, example = "1")
+            @PathVariable Long id,
+            @Valid @RequestBody AlertStatusUpdateRequest request) {
+        try {
+            TransactionAlert updatedAlert = alertService.updateAlertStatus(id, request);
+            return ResponseEntity.ok(updatedAlert);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @Operation(
+        summary = "標記警示為已處理",
+        description = "將指定警示標記為已處理狀態"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功標記為已處理",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        ),
+        @ApiResponse(responseCode = "404", description = "找不到指定的警示")
+    })
+    @PutMapping("/{id}/resolve")
+    public ResponseEntity<?> markAsResolved(
+            @Parameter(description = "警示 ID", required = true, example = "1")
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        try {
+            String resolvedBy = request.getOrDefault("resolvedBy", "system");
+            String note = request.getOrDefault("note", "");
+            TransactionAlert updatedAlert = alertService.markAsResolved(id, resolvedBy, note);
+            return ResponseEntity.ok(updatedAlert);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    @Operation(
+        summary = "標記警示為誤報",
+        description = "將指定警示標記為誤報狀態"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功標記為誤報",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        ),
+        @ApiResponse(responseCode = "404", description = "找不到指定的警示")
+    })
+    @PutMapping("/{id}/mark-false-positive")
+    public ResponseEntity<?> markAsFalsePositive(
+            @Parameter(description = "警示 ID", required = true, example = "1")
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+        try {
+            String resolvedBy = request.getOrDefault("resolvedBy", "system");
+            String note = request.getOrDefault("note", "");
+            TransactionAlert updatedAlert = alertService.markAsFalsePositive(id, resolvedBy, note);
+            return ResponseEntity.ok(updatedAlert);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+        }
     }
     
     @Operation(
@@ -208,6 +319,84 @@ public class AlertController {
             "frequentAlerts", frequentAlerts,
             "duplicateAlerts", duplicateAlerts
         ));
+    }
+    
+    @Operation(
+        summary = "取得警示統計總覽",
+        description = "取得所有警示的統計資訊，包含總數、各狀態數量、按類型/嚴重程度/狀態的分組統計"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得統計資料",
+            content = @Content(schema = @Schema(implementation = AlertStatisticsResponse.class))
+        )
+    })
+    @GetMapping("/statistics")
+    public ResponseEntity<AlertStatisticsResponse> getStatistics() {
+        AlertStatisticsResponse statistics = alertService.getStatistics();
+        return ResponseEntity.ok(statistics);
+    }
+    
+    @Operation(
+        summary = "取得時間範圍內的統計",
+        description = "取得指定時間範圍內的警示統計資訊"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得統計資料",
+            content = @Content(schema = @Schema(implementation = AlertStatisticsResponse.class))
+        ),
+        @ApiResponse(responseCode = "400", description = "時間參數格式錯誤")
+    })
+    @GetMapping("/statistics/range")
+    public ResponseEntity<AlertStatisticsResponse> getStatisticsByDateRange(
+            @Parameter(description = "開始時間 (ISO 8601 格式)", required = true, example = "2024-01-01T00:00:00")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+            @Parameter(description = "結束時間 (ISO 8601 格式)", required = true, example = "2024-12-31T23:59:59")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+        AlertStatisticsResponse statistics = alertService.getStatisticsByDateRange(start, end);
+        return ResponseEntity.ok(statistics);
+    }
+    
+    @Operation(
+        summary = "複合條件查詢警示",
+        description = "使用多個條件組合查詢警示，所有條件都是可選的"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得符合條件的警示列表",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        )
+    })
+    @PostMapping("/search")
+    public ResponseEntity<List<TransactionAlert>> searchAlerts(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                description = "搜尋條件，所有欄位都是可選的",
+                content = @Content(schema = @Schema(implementation = AlertSearchRequest.class))
+            )
+            @RequestBody AlertSearchRequest request) {
+        List<TransactionAlert> results = alertService.searchAlerts(request);
+        return ResponseEntity.ok(results);
+    }
+    
+    @Operation(
+        summary = "取得高風險待處理警示",
+        description = "取得所有嚴重程度為 HIGH 且狀態為 PENDING 的警示"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "成功取得高風險待處理警示列表",
+            content = @Content(schema = @Schema(implementation = TransactionAlert.class))
+        )
+    })
+    @GetMapping("/high-risk-pending")
+    public ResponseEntity<List<TransactionAlert>> getHighRiskPendingAlerts() {
+        List<TransactionAlert> alerts = alertService.getHighRiskPendingAlerts();
+        return ResponseEntity.ok(alerts);
     }
 }
 

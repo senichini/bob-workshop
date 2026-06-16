@@ -42,12 +42,37 @@ public class TransactionAlert {
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AlertStatus status = AlertStatus.PENDING;
+    
+    @Column
+    private LocalDateTime resolvedAt;
+    
+    @Column(length = 100)
+    private String resolvedBy;
+    
+    @Column(length = 1000)
+    private String resolutionNote;
+    
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
         if (detectedAt == null) {
             detectedAt = LocalDateTime.now();
         }
+        if (status == null) {
+            status = AlertStatus.PENDING;
+        }
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }
 

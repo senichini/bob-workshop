@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>警示管理系統 - 交易監控系統</title>
+    <link rel="stylesheet" href="alerts.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 頁面標題 -->
+        <header class="page-header">
+            <h1>🚨 警示管理系統</h1>
+            <p class="subtitle">即時監控與管理交易警示</p>
+        </header>
+
+        <!-- 統計儀表板 -->
+        <section class="statistics-dashboard">
+            <div class="stat-card total">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">總警示數</div>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-pending">0</div>
+                    <div class="stat-label">待處理</div>
+                </div>
+            </div>
+            <div class="stat-card resolved">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-resolved">0</div>
+                    <div class="stat-label">已處理</div>
+                </div>
+            </div>
+            <div class="stat-card false-positive">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="stat-false-positive">0</div>
+                    <div class="stat-label">誤報</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 搜尋篩選區塊 -->
+        <section class="search-section">
+            <h2>🔍 搜尋與篩選</h2>
+            <form id="search-form" class="search-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filter-status">狀態</label>
+                        <select id="filter-status" name="status">
+                            <option value="">全部</option>
+                            <option value="PENDING">待處理</option>
+                            <option value="RESOLVED">已處理</option>
+                            <option value="FALSE_POSITIVE">誤報</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-severity">嚴重程度</label>
+                        <select id="filter-severity" name="severity">
+                            <option value="">全部</option>
+                            <option value="HIGH">高</option>
+                            <option value="MEDIUM">中</option>
+                            <option value="LOW">低</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-type">警示類型</label>
+                        <input type="text" id="filter-type" name="alertType" placeholder="例如：SUSPICIOUS_AMOUNT">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="filter-start-date">開始時間</label>
+                        <input type="datetime-local" id="filter-start-date" name="startDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="filter-end-date">結束時間</label>
+                        <input type="datetime-local" id="filter-end-date" name="endDate">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">🔍 搜尋</button>
+                    <button type="button" id="reset-btn" class="btn btn-secondary">🔄 重置</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 警示列表 -->
+        <section class="alerts-section">
+            <div class="section-header">
+                <h2>📋 警示列表</h2>
+                <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                    載入中...
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>警示 ID</th>
+                            <th>交易 ID</th>
+                            <th>警示類型</th>
+                            <th>嚴重程度</th>
+                            <th>狀態</th>
+                            <th>偵測時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alerts-table-body">
+                        <tr>
+                            <td colspan="7" class="no-data">暫無資料</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- 詳細資訊模態框 -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>警示詳細資訊</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="alert-details">
+                    <!-- 動態載入警示詳情 -->
+                </div>
+                <div class="modal-form">
+                    <h3>處理警示</h3>
+                    <form id="update-form">
+                        <input type="hidden" id="modal-alert-id">
+                        <div class="form-group">
+                            <label for="modal-status">狀態 *</label>
+                            <select id="modal-status" required>
+                                <option value="">請選擇</option>
+                                <option value="PENDING">待處理</option>
+                                <option value="RESOLVED">已處理</option>
+                                <option value="FALSE_POSITIVE">誤報</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-resolved-by">處理人員 *</label>
+                            <input type="text" id="modal-resolved-by" required placeholder="請輸入處理人員姓名">
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-note">備註 *</label>
+                            <textarea id="modal-note" rows="4" required placeholder="請輸入處理備註"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 儲存</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 訊息提示 -->
+    <div id="toast" class="toast"></div>
+
+    <script src="alerts.js"></script>
+</body>
+</html>
