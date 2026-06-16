@@ -1,10 +1,12 @@
 // API 基礎 URL
 const API_BASE = '/api/transactions';
+const ALERT_API_BASE = '/api/alerts';
 
 // 頁面載入時初始化
 document.addEventListener('DOMContentLoaded', () => {
   loadStatistics();
   loadAllTransactions();
+  loadAllAlerts();
 });
 
 // 載入統計資料
@@ -144,6 +146,121 @@ function showError(message) {
   tbody.innerHTML = `
     <tr>
       <td colspan="7" style="color: var(--red); text-align: center;">
+        ⚠️ ${message}
+      </td>
+    </tr>
+  `;
+}
+
+// ==================== 警示相關功能 ====================
+
+// 載入所有警示
+async function loadAllAlerts() {
+  setActiveAlertButton(0);
+  try {
+    const response = await fetch(ALERT_API_BASE);
+    const alerts = await response.json();
+    displayAlerts(alerts);
+  } catch (error) {
+    console.error('載入警示失敗:', error);
+    showAlertError('無法載入警示資料');
+  }
+}
+
+// 載入高風險警示
+async function loadHighRiskAlerts() {
+  setActiveAlertButton(1);
+  try {
+    const response = await fetch(`${ALERT_API_BASE}/high-risk`);
+    const alerts = await response.json();
+    displayAlerts(alerts);
+  } catch (error) {
+    console.error('載入高風險警示失敗:', error);
+    showAlertError('無法載入高風險警示');
+  }
+}
+
+// 載入未處理警示
+async function loadUnresolvedAlerts() {
+  setActiveAlertButton(2);
+  try {
+    const response = await fetch(`${ALERT_API_BASE}/unresolved`);
+    const alerts = await response.json();
+    displayAlerts(alerts);
+  } catch (error) {
+    console.error('載入未處理警示失敗:', error);
+    showAlertError('無法載入未處理警示');
+  }
+}
+
+// 顯示警示列表
+function displayAlerts(alerts) {
+  const tbody = document.getElementById('alertsBody');
+  
+  if (alerts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">查無警示資料</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = alerts.map(alert => `
+    <tr>
+      <td>${alert.id}</td>
+      <td>${alert.transactionId}</td>
+      <td><span class="alert-type">${getAlertTypeText(alert.alertType)}</span></td>
+      <td>
+        <span class="severity-badge severity-${alert.severity.toLowerCase()}">
+          ${getSeverityText(alert.severity)}
+        </span>
+      </td>
+      <td class="alert-description">${alert.description}</td>
+      <td>${formatDateTime(alert.detectedAt)}</td>
+    </tr>
+  `).join('');
+}
+
+// 設定警示按鈕啟用狀態
+function setActiveAlertButton(index) {
+  const buttons = document.querySelectorAll('.filter-btn');
+  // 警示區塊的按鈕從第4個開始（前3個是交易篩選按鈕）
+  const alertButtons = Array.from(buttons).slice(3, 6);
+  alertButtons.forEach((btn, i) => {
+    if (i === index) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// 取得警示類型文字
+function getAlertTypeText(alertType) {
+  const typeMap = {
+    'HIGH_AMOUNT': '高額交易',
+    'FREQUENT_TRANSACTION': '頻繁交易',
+    'DUPLICATE_TRANSACTION': '重複交易',
+    'SUSPICIOUS_MERCHANT': '可疑商店',
+    'UNUSUAL_TIME': '異常時段',
+    'CROSS_BORDER': '跨境交易'
+  };
+  return typeMap[alertType] || alertType;
+}
+
+// 取得風險等級文字
+function getSeverityText(severity) {
+  const severityMap = {
+    'HIGH': '高風險',
+    'MEDIUM': '中風險',
+    'LOW': '低風險'
+  };
+  return severityMap[severity] || severity;
+}
+
+// 顯示警示錯誤訊息
+function showAlertError(message) {
+  const tbody = document.getElementById('alertsBody');
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" style="color: var(--red); text-align: center;">
         ⚠️ ${message}
       </td>
     </tr>

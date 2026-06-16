@@ -91,6 +91,43 @@
       </div>
     </div>
 
+    <!-- 警示列表區塊 -->
+    <div class="section">
+      <h2>🚨 交易警示</h2>
+      
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="loadAllAlerts()">
+          全部警示
+        </button>
+        <button class="filter-btn" onclick="loadHighRiskAlerts()">
+          高風險警示
+        </button>
+        <button class="filter-btn" onclick="loadUnresolvedAlerts()">
+          未處理警示
+        </button>
+      </div>
+
+      <div class="table-container">
+        <table id="alertsTable">
+          <thead>
+            <tr>
+              <th>警示ID</th>
+              <th>交易ID</th>
+              <th>警示類型</th>
+              <th>風險等級</th>
+              <th>描述</th>
+              <th>偵測時間</th>
+            </tr>
+          </thead>
+          <tbody id="alertsBody">
+            <tr>
+              <td colspan="6" class="loading">載入中...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 交易資料 API 列表 -->
     <div class="section">
       <h2>📋 交易資料 API</h2>

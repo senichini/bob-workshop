@@ -413,3 +413,84 @@ footer p {
   font-size: 12px;
   color: #6366f1;
 }
+
+/* ==================== 警示樣式 ==================== */
+
+/* 風險等級徽章 */
+.severity-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+}
+
+.severity-high {
+  background: rgba(255, 85, 85, 0.2);
+  color: #cc4444;
+  border: 1px solid rgba(255, 85, 85, 0.4);
+}
+
+.severity-medium {
+  background: rgba(255, 140, 0, 0.2);
+  color: #cc7000;
+  border: 1px solid rgba(255, 140, 0, 0.4);
+}
+
+.severity-low {
+  background: rgba(255, 193, 7, 0.2);
+  color: #cc9a00;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+/* 警示類型標籤 */
+.alert-type {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(0, 102, 204, 0.1);
+  color: var(--accent);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* 警示描述 */
+.alert-description {
+  max-width: 300px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 警示表格特殊樣式 */
+#alertsTable tbody tr:hover {
+  background: rgba(255, 140, 0, 0.03);
+}
+
+#alertsTable .severity-high {
+  animation: pulse-alert 2s infinite;
+}
+
+@keyframes pulse-alert {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.02);
+  }
+}
+
+/* 警示統計卡片 */
+.alert-stat-card {
+  background: linear-gradient(135deg, rgba(255, 85, 85, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%);
+  border-left: 4px solid var(--red);
+}
+
+.alert-stat-card:hover {
+  border-left-color: var(--warn);
+}

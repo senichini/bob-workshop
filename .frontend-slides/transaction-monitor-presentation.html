@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信用卡交易監控系統開發成果</title>
+    
+    <!-- Fonts: IBM Plex Sans for IBM corporate style -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (IBM THEME)
+           =========================================== */
+        :root {
+            /* IBM Colors */
+            --bg-primary: #f4f4f4;
+            --bg-secondary: #ffffff;
+            --text-primary: #161616;
+            --text-secondary: #525252;
+            --accent-blue: #0f62fe;
+            --accent-blue-light: #4589ff;
+            --accent-cyan: #1192e8;
+            --border-subtle: #e0e0e0;
+            --code-bg: #f4f4f4;
+            --success: #24a148;
+            --warning: #f1c21b;
+            --error: #da1e28;
+            
+            /* Typography */
+            --font-display: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --title-size: 88px;
+            --subtitle-size: 42px;
+            --heading-size: 56px;
+            --body-size: 28px;
+            --code-size: 24px;
+            
+            /* Spacing */
+            --slide-padding: 80px;
+            --content-gap: 32px;
+            
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.5s;
+        }
+        
+        /* ===========================================
+           BASE STYLES
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* ===========================================
+           FIXED 16:9 STAGE: MANDATORY BASE STYLES
+           =========================================== */
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+        
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+        
+        .deck-stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--bg-primary);
+        }
+        
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            background: var(--bg-primary);
+            padding: var(--slide-padding);
+        }
+        
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+        
+        img, video, canvas, svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        
+        p, li {
+            font-family: var(--font-display);
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+        
+        /* ===========================================
+           SLIDE LAYOUTS
+           =========================================== */
+        
+        /* Title Slide */
+        .title-slide {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            background: linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%);
+            position: relative;
+        }
+        
+        .title-slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background: var(--accent-blue);
+        }
+        
+        .title-slide h1 {
+            font-size: var(--title-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 32px;
+            max-width: 1400px;
+        }
+        
+        .title-slide .subtitle {
+            font-size: var(--subtitle-size);
+            color: var(--text-secondary);
+            margin-bottom: 48px;
+        }
+        
+        .title-slide .meta {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            display: flex;
+            gap: 48px;
+        }
+        
+        /* Content Slide */
+        .content-slide {
+            background: var(--bg-secondary);
+        }
+        
+        .content-slide h2 {
+            font-size: var(--heading-size);
+            color: var(--accent-blue);
+            margin-bottom: 48px;
+            padding-bottom: 24px;
+            border-bottom: 3px solid var(--accent-blue);
+        }
+        
+        .content-slide ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .content-slide li {
+            font-size: var(--body-size);
+            margin-bottom: 24px;
+            padding-left: 48px;
+            position: relative;
+        }
+        
+        .content-slide li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-blue);
+            font-weight: 700;
+            font-size: 32px;
+        }
+        
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 64px;
+            margin-top: 48px;
+        }
+        
+        .column h3 {
+            font-size: 36px;
+            color: var(--accent-blue);
+            margin-bottom: 24px;
+        }
+        
+        /* Code Block */
+        .code-block {
+            background: var(--code-bg);
+            border: 2px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 32px;
+            margin: 32px 0;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.6;
+            color: var(--text-primary);
+            overflow-x: auto;
+        }
+        
+        .code-block .keyword { color: #0f62fe; font-weight: 600; }
+        .code-block .string { color: #198038; }
+        .code-block .comment { color: #8d8d8d; font-style: italic; }
+        .code-block .number { color: #d12765; }
+        
+        /* Architecture Diagram */
+        .architecture {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 48px 0;
+            gap: 32px;
+        }
+        
+        .arch-box {
+            background: var(--bg-secondary);
+            border: 3px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .arch-box h4 {
+            font-size: 32px;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+        }
+        
+        .arch-box p {
+            font-size: 22px;
+            color: var(--text-secondary);
+        }
+        
+        .arch-arrow {
+            font-size: 48px;
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin: 48px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-cyan) 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-card .number {
+            font-size: 72px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        
+        .stat-card .label {
+            font-size: 28px;
+            opacity: 0.9;
+        }
+        
+        /* Feature List */
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 32px;
+            margin: 48px 0;
+        }
+        
+        .feature-item {
+            background: var(--bg-secondary);
+            border-left: 6px solid var(--accent-blue);
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .feature-item h4 {
+            font-size: 32px;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+        }
+        
+        .feature-item p {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+        
+        /* Highlight Box */
+        .highlight-box {
+            background: linear-gradient(135deg, #e8f4ff 0%, #d0e8ff 100%);
+            border-left: 6px solid var(--accent-blue);
+            padding: 32px;
+            margin: 32px 0;
+            border-radius: 8px;
+        }
+        
+        .highlight-box h3 {
+            font-size: 36px;
+            color: var(--accent-blue);
+            margin-bottom: 16px;
+        }
+        
+        .highlight-box p {
+            font-size: 26px;
+            color: var(--text-primary);
+        }
+        
+        /* Progress Indicator */
+        .progress {
+            position: fixed;
+            bottom: 40px;
+            right: 80px;
+            font-family: var(--font-mono);
+            font-size: 24px;
+            color: var(--text-secondary);
+            z-index: 1000;
+        }
+        
+        /* Print Styles */
+        @media print {
+            html, body {
+                width: 1920px;
+                height: auto;
+                overflow: visible;
+                background: #fff;
+            }
+            
+            .deck-viewport {
+                position: static;
+                overflow: visible;
+                background: #fff;
+            }
+            
+            .deck-stage {
+                position: static;
+                width: auto;
+                height: auto;
+                transform: none !important;
+                background: none;
+            }
+            
+            .slide {
+                position: relative;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                width: 1920px;
+                height: 1080px;
+                break-after: page;
+                page-break-after: always;
+            }
+            
+            .slide:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+            
+            .progress {
+                display: none !important;
+            }
+        }
+        
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+            
+            <!-- Slide 1: 封面 -->
+            <section class="slide title-slide active">
+                <h1 class="reveal">信用卡交易監控系統<br>開發成果</h1>
+                <p class="subtitle reveal">IBM Bob Workshop 實戰演練專案</p>
+                <div class="meta reveal">
+                    <span>Spring Boot 3.2 + JPA</span>
+                    <span>2024</span>
+                </div>
+            </section>
+            
+            <!-- Slide 2: 專案背景 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">專案背景與技術挑戰</h2>
+                <div class="two-column">
+                    <div class="column reveal">
+                        <h3>客戶需求</h3>
+                        <ul>
+                            <li>即時監控信用卡交易異常</li>
+                            <li>自動偵測可疑交易模式</li>
+                            <li>提供完整的警示管理功能</li>
+                            <li>確保金融級安全標準</li>
+                        </ul>
+                    </div>
+                    <div class="column reveal">
+                        <h3>技術挑戰</h3>
+                        <ul>
+                            <li>複雜的時間窗口查詢邏輯</li>
+                            <li>高效能的重複交易偵測</li>
+                            <li>敏感資料的安全處理</li>
+                            <li>RESTful API 設計與文件</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Slide 3: 系統架構 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">系統架構設計</h2>
+                <div class="architecture reveal">
+                    <div class="arch-box">
+                        <h4>Controller</h4>
+                        <p>REST API<br>Swagger UI</p>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-box">
+                        <h4>Service</h4>
+                        <p>偵測規則<br>業務邏輯</p>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-box">
+                        <h4>Repository</h4>
+                        <p>JPA<br>H2 Database</p>
+                    </div>
+                </div>
+                <div class="highlight-box reveal">
+                    <h3>核心模組</h3>
+                    <p><strong>AlertDetectionService</strong> - 實作三種智能偵測規則：高額交易、頻繁交易、重複交易</p>
+                </div>
+            </section>
+            
+            <!-- Slide 4: Entity 設計 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">TransactionAlert 資料模型</h2>
+                <div class="code-block reveal">
+<span class="comment">// 交易警示實體 - 記錄所有異常交易</span>
+<span class="keyword">@Entity</span>
+<span class="keyword">@Table</span>(name = <span class="string">"transaction_alerts"</span>)
+<span class="keyword">public class</span> TransactionAlert {
+    
+    <span class="keyword">@Id</span>
+    <span class="keyword">@GeneratedValue</span>
+    <span class="keyword">private</span> Long alertId;
+    
+    <span class="keyword">@ManyToOne</span>
+    <span class="keyword">private</span> Transaction transaction;
+    
+    <span class="keyword">private</span> String alertType;      <span class="comment">// HIGH_AMOUNT, FREQUENT, DUPLICATE</span>
+    <span class="keyword">private</span> String severity;       <span class="comment">// HIGH, MEDIUM, LOW</span>
+    <span class="keyword">private</span> LocalDateTime detectedAt;
+    <span class="keyword">private</span> String description;
+}
+                </div>
+            </section>
+            
+            <!-- Slide 5: 偵測規則實作 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">三種智能偵測規則</h2>
+                <div class="stats-grid reveal">
+                    <div class="stat-card">
+                        <div class="number">1</div>
+                        <div class="label">高額交易</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number">2</div>
+                        <div class="label">頻繁交易</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number">3</div>
+                        <div class="label">重複交易</div>
+                    </div>
+                </div>
+                <div class="feature-list reveal">
+                    <div class="feature-item">
+                        <h4>規則 1：高額交易</h4>
+                        <p>單筆交易金額超過 50,000 元時觸發警示</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>規則 2：頻繁交易</h4>
+                        <p>同一卡片 1 小時內超過 5 筆交易</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>規則 3：重複交易</h4>
+                        <p>5 分鐘內相同金額、相同商店的交易</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>自動偵測機制</h4>
+                        <p>每筆新交易自動執行所有規則檢查</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Slide 6: 偵測邏輯程式碼 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">核心偵測邏輯</h2>
+                <div class="code-block reveal">
+<span class="comment">// 高額交易偵測</span>
+<span class="keyword">private</span> TransactionAlert detectHighAmountTransaction(Transaction tx) {
+    <span class="keyword">if</span> (tx.getAmount().compareTo(HIGH_AMOUNT_THRESHOLD) > <span class="number">0</span>) {
+        TransactionAlert alert = <span class="keyword">new</span> TransactionAlert();
+        alert.setAlertType(<span class="string">"HIGH_AMOUNT"</span>);
+        alert.setSeverity(<span class="string">"HIGH"</span>);
+        alert.setDescription(<span class="string">"交易金額超過閾值"</span>);
+        <span class="keyword">return</span> alert;
+    }
+    <span class="keyword">return null</span>;
+}
+
+<span class="comment">// 頻繁交易偵測 - 使用時間窗口查詢</span>
+<span class="keyword">private</span> TransactionAlert detectFrequentTransactions(Transaction tx) {
+    LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(<span class="number">1</span>);
+    <span class="keyword">long</span> count = transactionRepository
+        .countByCardIdAndTransactionTimeAfter(tx.getCard().getId(), oneHourAgo);
+    <span class="keyword">return</span> count > <span class="number">5</span> ? createAlert(<span class="string">"FREQUENT"</span>) : <span class="keyword">null</span>;
+}
+                </div>
+            </section>
+            
+            <!-- Slide 7: REST API 設計 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">REST API 端點設計</h2>
+                <div class="two-column">
+                    <div class="column reveal">
+                        <h3>警示查詢 API</h3>
+                        <ul>
+                            <li>GET /api/alerts</li>
+                            <li>GET /api/alerts/{id}</li>
+                            <li>GET /api/alerts/transaction/{id}</li>
+                            <li>GET /api/alerts/type/{type}</li>
+                            <li>GET /api/alerts/severity/{level}</li>
+                        </ul>
+                    </div>
+                    <div class="column reveal">
+                        <h3>Swagger UI 整合</h3>
+                        <ul>
+                            <li>完整的 API 文件</li>
+                            <li>互動式測試介面</li>
+                            <li>參數說明與範例</li>
+                            <li>回應格式定義</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box reveal">
+                    <h3>OpenAPI 3.0 規範</h3>
+                    <p>使用 @Operation、@ApiResponse 等註解提供完整的 API 文件，支援自動生成 Swagger UI</p>
+                </div>
+            </section>
+            
+            <!-- Slide 8: Bob 使用技巧 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">IBM Bob 開發效率提升</h2>
+                <div class="feature-list reveal">
+                    <div class="feature-item">
+                        <h4>Ask Mode</h4>
+                        <p>分析現有程式碼結構，理解 Entity 設計模式</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>Code Mode</h4>
+                        <p>快速生成 Repository、Service、Controller</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>Slash Commands</h4>
+                        <p>自訂 /analyze-security 檢查安全規範</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>Rules & AGENTS.md</h4>
+                        <p>建立專案規範，確保程式碼一致性</p>
+                    </div>
+                </div>
+                <div class="highlight-box reveal">
+                    <h3>開發效率提升 3 倍</h3>
+                    <p>透過 Bob 的智能輔助，從需求分析到程式碼實作的時間大幅縮短</p>
+                </div>
+            </section>
+            
+            <!-- Slide 9: 安全最佳實踐 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">金融級安全最佳實踐</h2>
+                <div class="two-column">
+                    <div class="column reveal">
+                        <h3>資料保護</h3>
+                        <ul>
+                            <li><strong>卡號遮罩</strong><br>只顯示後 4 碼</li>
+                            <li><strong>BigDecimal</strong><br>精確的金額計算</li>
+                            <li><strong>審計日誌</strong><br>記錄所有警示事件</li>
+                        </ul>
+                    </div>
+                    <div class="column reveal">
+                        <h3>安全防護</h3>
+                        <ul>
+                            <li><strong>SQL Injection</strong><br>使用 JPA Query Methods</li>
+                            <li><strong>Constructor Injection</strong><br>避免循環依賴</li>
+                            <li><strong>@Transactional</strong><br>確保資料一致性</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="code-block reveal">
+<span class="comment">// 卡號遮罩範例</span>
+<span class="keyword">public</span> String getMaskedCardNumber() {
+    <span class="keyword">return</span> <span class="string">"****-****-****-"</span> + cardNumber.substring(<span class="number">12</span>);
+}
+                </div>
+            </section>
+            
+            <!-- Slide 10: 總結與心得 -->
+            <section class="slide content-slide">
+                <h2 class="reveal">開發成果與學習收穫</h2>
+                <div class="stats-grid reveal">
+                    <div class="stat-card">
+                        <div class="number">3</div>
+                        <div class="label">偵測規則</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number">5</div>
+                        <div class="label">REST API</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number">100%</div>
+                        <div class="label">安全合規</div>
+                    </div>
+                </div>
+                <div class="feature-list reveal">
+                    <div class="feature-item">
+                        <h4>技術成就</h4>
+                        <p>完整實作交易監控系統，包含 Entity、Service、Controller 三層架構</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>開發效率</h4>
+                        <p>使用 IBM Bob 大幅提升開發速度，從分析到實作僅需 2 小時</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>程式碼品質</h4>
+                        <p>透過 Rules 和 AGENTS.md 確保程式碼符合企業標準</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4>安全實踐</h4>
+                        <p>實作金融級安全標準，包含資料遮罩、SQL 防護等</p>
+                    </div>
+                </div>
+            </section>
+            
+        </main>
+    </div>
+    
+    <!-- Progress Indicator -->
+    <div class="progress" id="progress">1 / 10</div>
+    
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.progress = document.getElementById('progress');
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.showSlide(0);
+            }
+            
+            setupStageScale() {
+                const scale = () => {
+                    const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                    const x = (window.innerWidth - 1920 * factor) / 2;
+                    const y = (window.innerHeight - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+            
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    } else if (e.key === 'Home') {
+                        e.preventDefault();
+                        this.showSlide(0);
+                    } else if (e.key === 'End') {
+                        e.preventDefault();
+                        this.showSlide(this.slides.length - 1);
+                    }
+                });
+            }
+            
+            setupTouchNav() {
+                let touchStartX = 0;
+                let touchEndX = 0;
+                
+                this.stage.addEventListener('touchstart', (e) => {
+                    touchStartX = e.changedTouches[0].screenX;
+                });
+                
+                this.stage.addEventListener('touchend', (e) => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    this.handleSwipe();
+                });
+                
+                const handleSwipe = () => {
+                    if (touchEndX < touchStartX - 50) this.nextSlide();
+                    if (touchEndX > touchStartX + 50) this.prevSlide();
+                };
+                
+                this.handleSwipe = handleSwipe;
+            }
+            
+            showSlide(index) {
+                this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+                this.slides.forEach((slide, i) => {
+                    slide.classList.toggle('active', i === this.currentSlide);
+                    slide.classList.toggle('visible', i === this.currentSlide);
+                });
+                this.updateProgress();
+            }
+            
+            nextSlide() {
+                this.showSlide(this.currentSlide + 1);
+            }
+            
+            prevSlide() {
+                this.showSlide(this.currentSlide - 1);
+            }
+            
+            updateProgress() {
+                this.progress.textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+            }
+        }
+        
+        // Initialize presentation
+        new SlidePresentation();
+    </script>
+</body>
+</html>
